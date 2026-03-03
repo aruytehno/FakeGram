@@ -1,23 +1,11 @@
 // Состояние приложения
-let currentChat = 'general';
-const messages = {
-    general: [
-        { id: 1, text: 'Добро пожаловать в общий чат!', sender: 'system', time: '10:00', type: 'received' },
-        { id: 2, text: 'Привет всем!', sender: 'user', time: '10:01', type: 'received' },
-    ],
-    friends: [
-        { id: 1, text: 'Как дела?', sender: 'friend1', time: '09:30', type: 'received' },
-    ],
-    work: [
-        { id: 1, text: 'Встреча в 15:00', sender: 'boss', time: '08:15', type: 'received' },
-    ]
+let appState = {
+    currentChat: null,
+    chats: [],
+    messages: {},
+    typingTimeouts: {},
+    activeTyping: false
 };
-
-const chats = [
-    { id: 'general', name: 'Общий чат', avatar: '👥', lastMsg: 'Привет всем!', time: '10:01' },
-    { id: 'friends', name: 'Друзья', avatar: '👥', lastMsg: 'Как дела?', time: '09:30' },
-    { id: 'work', name: 'Работа', avatar: '💼', lastMsg: 'Встреча в 15:00', time: '08:15' },
-];
 
 // DOM элементы
 const chatsList = document.getElementById('chatsList');
@@ -26,6 +14,11 @@ const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
 const currentChatName = document.getElementById('currentChatName');
 const currentChatAvatar = document.getElementById('currentChatAvatar');
+const chatStatus = document.getElementById('chatStatus');
+const typingIndicator = document.getElementById('typingIndicator');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
 
 // Регистрация Service Worker для PWA
 if ('serviceWorker' in navigator) {
@@ -36,14 +29,113 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Загрузка диалогов из JSON
+async function loadDialogues() {
+    try {
+        const response = await fetch('dialogues.json');
+        const data = await response.json();
+
+        appState.chats = data.chats;
+
+        // Преобразуем сообщения в удобный формат
+        appState.chats.forEach(chat => {
+            appState.messages[chat.id] = chat.messages || [];
+            delete chat.messages; // Убираем сообщения из chat, оставляем только метаданные
+        });
+
+        // Устанавливаем первый чат как текущий
+        if (appState.chats.length > 0) {
+            appState.currentChat = appState.chats[0].id;
+            updateChatHeader();
+        }
+
+        loadChats();
+        loadMessages();
+    } catch (error) {
+        console.error('Ошибка загрузки диалогов:', error);
+        // Загружаем демо-данные если файл не найден
+        loadDemoData();
+    }
+}
+
+// Демо-данные на случай отсутствия JSON
+function loadDemoData() {
+    appState.chats = [
+        { id: 'demo1', name: 'Демо чат', avatar: '👤', lastMsg: 'Загрузите dialogues.json', time: 'сейчас', status: 'ожидание' }
+    ];
+    appState.messages = {
+        demo1: [
+            { id: 1, text: 'Создайте файл dialogues.json в корне проекта', sender: 'system', time: '12:00', type: 'received' }
+        ]
+    };
+    appState.currentChat = 'demo1';
+    loadChats();
+    loadMessages();
+}
+
+// Загрузка списка чатов
+function loadChats() {
+    chatsList.innerHTML = '';
+    appState.chats.forEach(chat => {
+        const lastMsg = getLastMessage(chat.id);
+        const chatEl = document.createElement('div');
+        chatEl.className = `chat-item ${chat.id === appState.currentChat ? 'active' : ''}`;
+        chatEl.dataset.chatId = chat.id;
+        chatEl.innerHTML = `
+            <div class="avatar">${chat.avatar}</div>
+            <div class="chat-item-info">
+                <div class="chat-item-name">${chat.name}</div>
+                <div class="chat-item-lastmsg">${lastMsg?.text || chat.lastMsg || 'Нет сообщений'}</div>
+            </div>
+            <div class="chat-item-time">${chat.time || ''}</div>
+        `;
+        chatEl.addEventListener('click', () => switchChat(chat.id));
+        chatsList.appendChild(chatEl);
+    });
+}
+
+// Получение последнего сообщения в чате
+function getLastMessage(chatId) {
+    const messages = appState.messages[chatId] || [];
+    return messages[messages.length - 1];
+}
+
+// Обновление заголовка чата
+function updateChatHeader() {
+    const chat = appState.chats.find(c => c.id === appState.currentChat);
+    if (chat) {
+        currentChatName.textContent = chat.name;
+        currentChatAvatar.textContent = chat.avatar;
+        chatStatus.textContent = chat.status || 'онлайн';
+    }
+}
+
+// Переключение чата
+function switchChat(chatId) {
+    // Очищаем таймеры набора текста для предыдущего чата
+    if (appState.typingTimeouts[appState.currentChat]) {
+        clearTimeout(appState.typingTimeouts[appState.currentChat]);
+    }
+
+    appState.currentChat = chatId;
+    updateChatHeader();
+    loadMessages();
+    loadChats(); // Обновляем активный класс
+
+    // Скрываем индикатор печати
+    typingIndicator.style.display = 'none';
+    appState.activeTyping = false;
+}
+
 // Загрузка сообщений
-function loadMessages(chatId) {
-    const chatMessages = messages[chatId] || [];
+function loadMessages() {
+    const chatMessages = appState.messages[appState.currentChat] || [];
     messagesContainer.innerHTML = '';
 
     chatMessages.forEach(msg => {
         const messageEl = document.createElement('div');
         messageEl.className = `message ${msg.type}`;
+        messageEl.dataset.messageId = msg.id;
         messageEl.innerHTML = `
             <div class="message-text">${msg.text}</div>
             <div class="message-time">${msg.time}</div>
@@ -54,63 +146,154 @@ function loadMessages(chatId) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Загрузка списка чатов
-function loadChats() {
-    chatsList.innerHTML = '';
-    chats.forEach(chat => {
-        const chatEl = document.createElement('div');
-        chatEl.className = `chat-item ${chat.id === currentChat ? 'active' : ''}`;
-        chatEl.dataset.chatId = chat.id;
-        chatEl.innerHTML = `
-            <div class="avatar">${chat.avatar}</div>
-            <div class="chat-item-info">
-                <div class="chat-item-name">${chat.name}</div>
-                <div class="chat-item-lastmsg">${chat.lastMsg}</div>
-            </div>
-        `;
-        chatEl.addEventListener('click', () => switchChat(chat.id));
-        chatsList.appendChild(chatEl);
-    });
-}
-
-// Переключение чата
-function switchChat(chatId) {
-    currentChat = chatId;
-    const chat = chats.find(c => c.id === chatId);
-    currentChatName.textContent = chat.name;
-    currentChatAvatar.textContent = chat.avatar;
-    loadMessages(chatId);
-    loadChats(); // Обновляем активный класс
-}
-
 // Отправка сообщения
 function sendMessage() {
     const text = messageInput.value.trim();
-    if (!text) return;
+    if (!text || !appState.currentChat) return;
 
     const now = new Date();
     const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-    if (!messages[currentChat]) {
-        messages[currentChat] = [];
+    if (!appState.messages[appState.currentChat]) {
+        appState.messages[appState.currentChat] = [];
     }
 
-    messages[currentChat].push({
+    // Добавляем сообщение пользователя
+    const newMessage = {
         id: Date.now(),
         text: text,
         sender: 'me',
         time: time,
         type: 'sent'
-    });
+    };
+
+    appState.messages[appState.currentChat].push(newMessage);
 
     // Обновляем последнее сообщение в чате
-    const chat = chats.find(c => c.id === currentChat);
+    const chat = appState.chats.find(c => c.id === appState.currentChat);
     chat.lastMsg = text;
     chat.time = time;
 
     messageInput.value = '';
-    loadMessages(currentChat);
+    loadMessages();
     loadChats();
+
+    // Проверяем, есть ли запланированные ответы
+    checkForReplies();
+}
+
+// Проверка наличия запланированных ответов
+function checkForReplies() {
+    const messages = appState.messages[appState.currentChat] || [];
+    const lastMessage = messages[messages.length - 1];
+
+    // Ищем следующий ответ от контакта
+    const nextReply = messages.find(msg =>
+        msg.sender === 'contact' &&
+        msg.delay > 0 &&
+        !msg.scheduled &&
+        messages.indexOf(msg) > messages.indexOf(lastMessage)
+    );
+
+    if (nextReply && !appState.activeTyping) {
+        scheduleReply(nextReply);
+    }
+}
+
+// Планирование ответа
+function scheduleReply(reply) {
+    if (!reply || reply.scheduled) return;
+
+    reply.scheduled = true;
+
+    // Показываем индикатор печати
+    setTimeout(() => {
+        typingIndicator.style.display = 'flex';
+        appState.activeTyping = true;
+    }, reply.delay * 1000 - (reply.typingTime || 5) * 1000);
+
+    // Отправляем сообщение
+    appState.typingTimeouts[appState.currentChat] = setTimeout(() => {
+        typingIndicator.style.display = 'none';
+        appState.activeTyping = false;
+
+        // Добавляем сообщение в чат
+        appState.messages[appState.currentChat].push(reply);
+
+        // Обновляем последнее сообщение в чате
+        const chat = appState.chats.find(c => c.id === appState.currentChat);
+        chat.lastMsg = reply.text;
+        chat.time = reply.time;
+
+        loadMessages();
+        loadChats();
+
+        // Проверяем следующие ответы
+        checkForReplies();
+    }, reply.delay * 1000);
+}
+
+// Экспорт диалогов в JSON
+function exportDialogues() {
+    const exportData = {
+        chats: appState.chats.map(chat => ({
+            ...chat,
+            messages: appState.messages[chat.id] || []
+        }))
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+    const exportFileDefaultName = `dialogues_${new Date().toISOString().slice(0,10)}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
+
+// Импорт диалогов из JSON
+function importDialogues(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+
+            // Очищаем старые таймеры
+            Object.values(appState.typingTimeouts).forEach(timeout => {
+                clearTimeout(timeout);
+            });
+
+            appState.chats = data.chats || [];
+            appState.messages = {};
+
+            appState.chats.forEach(chat => {
+                appState.messages[chat.id] = chat.messages || [];
+                delete chat.messages;
+            });
+
+            if (appState.chats.length > 0) {
+                appState.currentChat = appState.chats[0].id;
+                updateChatHeader();
+            }
+
+            loadChats();
+            loadMessages();
+
+            // Скрываем индикатор печати
+            typingIndicator.style.display = 'none';
+            appState.activeTyping = false;
+
+            alert('Диалоги успешно импортированы!');
+        } catch (error) {
+            alert('Ошибка при импорте файла: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
 }
 
 // Обработчики событий
@@ -119,42 +302,12 @@ messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
 });
 
+exportBtn.addEventListener('click', exportDialogues);
+importBtn.addEventListener('click', () => importFile.click());
+importFile.addEventListener('change', importDialogues);
+
 // Инициализация
-loadChats();
-loadMessages(currentChat);
-
-// Эмуляция получения сообщений
-setInterval(() => {
-    if (Math.random() > 0.7) { // 30% шанс нового сообщения
-        const randomChat = chats[Math.floor(Math.random() * chats.length)];
-        if (randomChat.id === currentChat) {
-            const now = new Date();
-            const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-            messages[randomChat.id].push({
-                id: Date.now(),
-                text: 'Новое сообщение!',
-                sender: 'other',
-                time: time,
-                type: 'received'
-            });
-
-            randomChat.lastMsg = 'Новое сообщение!';
-            randomChat.time = time;
-
-            loadMessages(currentChat);
-            loadChats();
-
-            // Уведомление
-            if (Notification.permission === 'granted') {
-                new Notification('Новое сообщение', {
-                    body: `В чате ${randomChat.name}`,
-                    icon: 'icon-192.png'
-                });
-            }
-        }
-    }
-}, 10000);
+loadDialogues();
 
 // Запрос разрешения на уведомления
 if (Notification.permission === 'default') {

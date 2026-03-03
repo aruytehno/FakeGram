@@ -6,7 +6,7 @@
     <title>FakeGram</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <meta name="theme-color" content="#2b5278">
 </head>
 <body>
@@ -18,7 +18,11 @@
                 <div class="avatar">👤</div>
                 <span class="username">Пользователь</span>
             </div>
-            <button class="new-chat-btn">➕</button>
+            <div class="header-actions">
+                <button class="icon-btn" id="exportBtn" title="Экспорт диалогов">📤</button>
+                <button class="icon-btn" id="importBtn" title="Импорт диалогов">📥</button>
+                <input type="file" id="importFile" accept=".json" style="display: none">
+            </div>
         </div>
         <div class="chats-list" id="chatsList">
             <!-- Чаты будут добавляться сюда -->
@@ -32,13 +36,18 @@
                 <div class="avatar" id="currentChatAvatar">👥</div>
                 <div>
                     <div class="chat-name" id="currentChatName">Общий чат</div>
-                    <div class="chat-status" id="chatStatus">был(а) недавно</div>
+                    <div class="chat-status" id="chatStatus">онлайн</div>
                 </div>
             </div>
         </div>
 
         <div class="messages-container" id="messagesContainer">
             <!-- Сообщения будут здесь -->
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <span>собеседник печатает</span>
+            <span class="typing-dots">...</span>
         </div>
 
         <div class="message-input-container">

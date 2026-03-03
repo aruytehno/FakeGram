@@ -1,0 +1,157 @@
+{
+  "chats": [
+    {
+      "id": "alex",
+      "name": "Алексей",
+      "avatar": "👨‍💻",
+      "lastMsg": "Привет! Как дела?",
+      "time": "10:30",
+      "status": "онлайн",
+      "messages": [
+        {
+          "id": 1,
+          "text": "Привет! Как дела?",
+          "sender": "contact",
+          "time": "10:30",
+          "type": "received",
+          "delay": 0
+        },
+        {
+          "id": 2,
+          "text": "Нормально, работаю над проектом",
+          "sender": "me",
+          "time": "10:32",
+          "type": "sent"
+        },
+        {
+          "id": 3,
+          "text": "Круто! А над чем именно?",
+          "sender": "contact",
+          "time": "10:35",
+          "type": "received",
+          "delay": 180,
+          "typingTime": 5
+        }
+      ]
+    },
+    {
+      "id": "maria",
+      "name": "Мария",
+      "avatar": "👩‍🎨",
+      "lastMsg": "Скинь фото",
+      "time": "09:15",
+      "status": "был(а) 5 мин назад",
+      "messages": [
+        {
+          "id": 1,
+          "text": "Привет! Ты уже видела новые фото?",
+          "sender": "contact",
+          "time": "09:00",
+          "type": "received",
+          "delay": 0
+        },
+        {
+          "id": 2,
+          "text": "Нет еще, скинь ссылку",
+          "sender": "me",
+          "time": "09:05",
+          "type": "sent"
+        },
+        {
+          "id": 3,
+          "text": "Сейчас найду",
+          "sender": "contact",
+          "time": "09:10",
+          "type": "received",
+          "delay": 300,
+          "typingTime": 8
+        },
+        {
+          "id": 4,
+          "text": "Вот, посмотри: instagram.com/p/...",
+          "sender": "contact",
+          "time": "09:15",
+          "type": "received",
+          "delay": 300,
+          "typingTime": 12
+        }
+      ]
+    },
+    {
+      "id": "family",
+      "name": "Семья",
+      "avatar": "👨‍👩‍👧",
+      "lastMsg": "Когда приедешь?",
+      "time": "вчера",
+      "status": "был(а) вчера",
+      "messages": [
+        {
+          "id": 1,
+          "text": "Мам, привет! Как дела?",
+          "sender": "me",
+          "time": "вчера 18:00",
+          "type": "sent"
+        },
+        {
+          "id": 2,
+          "text": "Привет, сынок! Все хорошо. Когда приедешь в гости?",
+          "sender": "contact",
+          "time": "вчера 18:30",
+          "type": "received",
+          "delay": 1800,
+          "typingTime": 15
+        },
+        {
+          "id": 3,
+          "text": "Наверное в выходные",
+          "sender": "me",
+          "time": "вчера 19:00",
+          "type": "sent"
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "name": "Рабочий чат",
+      "avatar": "💼",
+      "lastMsg": "Созвон в 15:00",
+      "time": "11:20",
+      "status": "20 участников",
+      "messages": [
+        {
+          "id": 1,
+          "text": "Коллеги, напоминаю о созвоне сегодня в 15:00",
+          "sender": "boss",
+          "time": "11:00",
+          "type": "received",
+          "delay": 0
+        },
+        {
+          "id": 2,
+          "text": "Тема: обсуждение нового проекта",
+          "sender": "boss",
+          "time": "11:01",
+          "type": "received",
+          "delay": 60,
+          "typingTime": 3
+        },
+        {
+          "id": 3,
+          "text": "Ссылку в конференцию пришлю позже",
+          "sender": "boss",
+          "time": "11:02",
+          "type": "received",
+          "delay": 60,
+          "typingTime": 5
+        },
+        {
+          "id": 4,
+          "text": "Ок, будем",
+          "sender": "me",
+          "time": "11:20",
+          "type": "sent"
+        }
+      ]
+    }
+  ]
+}
