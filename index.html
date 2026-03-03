@@ -18,12 +18,48 @@
                 <div class="avatar">👤</div>
                 <span class="username">Пользователь</span>
             </div>
-            <div class="header-actions">
-                <button class="icon-btn" id="exportBtn" title="Экспорт диалогов">📤</button>
-                <button class="icon-btn" id="importBtn" title="Импорт диалогов">📥</button>
+            <button class="menu-btn" id="menuBtn">☰</button>
+        </div>
+
+        <!-- Меню пользователя (скрыто по умолчанию) -->
+        <div class="user-menu" id="userMenu" style="display: none;">
+            <div class="menu-section">
+                <div class="menu-item" id="profileMenuItem">
+                    <span class="menu-icon">👤</span>
+                    <span>Профиль</span>
+                </div>
+                <div class="menu-item" id="settingsMenuItem">
+                    <span class="menu-icon">⚙️</span>
+                    <span>Настройки</span>
+                </div>
+            </div>
+            <div class="menu-section">
+                <div class="menu-item" id="newChatMenuItem">
+                    <span class="menu-icon">➕</span>
+                    <span>Новый диалог</span>
+                </div>
+                <div class="menu-item" id="editChatMenuItem">
+                    <span class="menu-icon">✏️</span>
+                    <span>Редактировать диалог</span>
+                </div>
+                <div class="menu-item" id="deleteChatMenuItem">
+                    <span class="menu-icon">🗑️</span>
+                    <span>Удалить диалог</span>
+                </div>
+            </div>
+            <div class="menu-section">
+                <div class="menu-item" id="exportMenuItem">
+                    <span class="menu-icon">📤</span>
+                    <span>Экспорт диалогов</span>
+                </div>
+                <div class="menu-item" id="importMenuItem">
+                    <span class="menu-icon">📥</span>
+                    <span>Импорт диалогов</span>
+                </div>
                 <input type="file" id="importFile" accept=".json" style="display: none">
             </div>
         </div>
+
         <div class="chats-list" id="chatsList">
             <!-- Чаты будут добавляться сюда -->
         </div>
@@ -51,11 +87,93 @@
         </div>
 
         <div class="message-input-container">
-            <button class="attach-btn">📎</button>
+            <button class="attach-btn" id="attachBtn">📎</button>
             <input type="text" class="message-input" id="messageInput" placeholder="Сообщение">
             <button class="send-btn" id="sendButton">📤</button>
         </div>
     </main>
+</div>
+
+<!-- Модальные окна -->
+<div class="modal" id="profileModal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Профиль</h3>
+            <button class="close-btn" onclick="closeModal('profileModal')">✖</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Имя пользователя</label>
+                <input type="text" id="usernameInput" value="Пользователь">
+            </div>
+            <div class="form-group">
+                <label>Аватар</label>
+                <div class="avatar-selector">
+                    <button class="avatar-option">👤</button>
+                    <button class="avatar-option">👨</button>
+                    <button class="avatar-option">👩</button>
+                    <button class="avatar-option">🧑</button>
+                    <button class="avatar-option">👶</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="saveProfile()">Сохранить</button>
+            <button class="btn-secondary" onclick="closeModal('profileModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="chatModal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="chatModalTitle">Новый диалог</h3>
+            <button class="close-btn" onclick="closeModal('chatModal')">✖</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Название чата</label>
+                <input type="text" id="chatNameInput" placeholder="Например: Алексей">
+            </div>
+            <div class="form-group">
+                <label>Аватар</label>
+                <div class="avatar-selector">
+                    <button class="avatar-option">👤</button>
+                    <button class="avatar-option">👨‍💻</button>
+                    <button class="avatar-option">👩‍🎨</button>
+                    <button class="avatar-option">👨‍👩‍👧</button>
+                    <button class="avatar-option">💼</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Статус</label>
+                <input type="text" id="chatStatusInput" placeholder="онлайн">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" id="saveChatBtn">Сохранить</button>
+            <button class="btn-secondary" onclick="closeModal('chatModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="messageModal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Редактирование сообщений</h3>
+            <button class="close-btn" onclick="closeModal('messageModal')">✖</button>
+        </div>
+        <div class="modal-body">
+            <div class="messages-list" id="editableMessages">
+                <!-- Сообщения для редактирования -->
+            </div>
+            <button class="btn-add-message" id="addMessageBtn">+ Добавить сообщение</button>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="saveMessages()">Сохранить</button>
+            <button class="btn-secondary" onclick="closeModal('messageModal')">Отмена</button>
+        </div>
+    </div>
 </div>
 
 <script src="app.js"></script>

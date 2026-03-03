@@ -4,7 +4,10 @@ let appState = {
     chats: [],
     messages: {},
     typingTimeouts: {},
-    activeTyping: false
+    activeTyping: false,
+    username: 'Пользователь',
+    userAvatar: '👤',
+    editingChatId: null
 };
 
 // DOM элементы
@@ -16,8 +19,8 @@ const currentChatName = document.getElementById('currentChatName');
 const currentChatAvatar = document.getElementById('currentChatAvatar');
 const chatStatus = document.getElementById('chatStatus');
 const typingIndicator = document.getElementById('typingIndicator');
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
+const menuBtn = document.getElementById('menuBtn');
+const userMenu = document.getElementById('userMenu');
 const importFile = document.getElementById('importFile');
 
 // Регистрация Service Worker для PWA
@@ -40,10 +43,9 @@ async function loadDialogues() {
         // Преобразуем сообщения в удобный формат
         appState.chats.forEach(chat => {
             appState.messages[chat.id] = chat.messages || [];
-            delete chat.messages; // Убираем сообщения из chat, оставляем только метаданные
+            delete chat.messages;
         });
 
-        // Устанавливаем первый чат как текущий
         if (appState.chats.length > 0) {
             appState.currentChat = appState.chats[0].id;
             updateChatHeader();
@@ -53,12 +55,11 @@ async function loadDialogues() {
         loadMessages();
     } catch (error) {
         console.error('Ошибка загрузки диалогов:', error);
-        // Загружаем демо-данные если файл не найден
         loadDemoData();
     }
 }
 
-// Демо-данные на случай отсутствия JSON
+// Демо-данные
 function loadDemoData() {
     appState.chats = [
         { id: 'demo1', name: 'Демо чат', avatar: '👤', lastMsg: 'Загрузите dialogues.json', time: 'сейчас', status: 'ожидание' }
@@ -94,7 +95,7 @@ function loadChats() {
     });
 }
 
-// Получение последнего сообщения в чате
+// Получение последнего сообщения
 function getLastMessage(chatId) {
     const messages = appState.messages[chatId] || [];
     return messages[messages.length - 1];
@@ -112,7 +113,6 @@ function updateChatHeader() {
 
 // Переключение чата
 function switchChat(chatId) {
-    // Очищаем таймеры набора текста для предыдущего чата
     if (appState.typingTimeouts[appState.currentChat]) {
         clearTimeout(appState.typingTimeouts[appState.currentChat]);
     }
@@ -120,11 +120,13 @@ function switchChat(chatId) {
     appState.currentChat = chatId;
     updateChatHeader();
     loadMessages();
-    loadChats(); // Обновляем активный класс
+    loadChats();
 
-    // Скрываем индикатор печати
     typingIndicator.style.display = 'none';
     appState.activeTyping = false;
+
+    // Закрываем меню при переключении чата
+    closeMenu();
 }
 
 // Загрузка сообщений
@@ -158,7 +160,6 @@ function sendMessage() {
         appState.messages[appState.currentChat] = [];
     }
 
-    // Добавляем сообщение пользователя
     const newMessage = {
         id: Date.now(),
         text: text,
@@ -169,7 +170,6 @@ function sendMessage() {
 
     appState.messages[appState.currentChat].push(newMessage);
 
-    // Обновляем последнее сообщение в чате
     const chat = appState.chats.find(c => c.id === appState.currentChat);
     chat.lastMsg = text;
     chat.time = time;
@@ -177,17 +177,14 @@ function sendMessage() {
     messageInput.value = '';
     loadMessages();
     loadChats();
-
-    // Проверяем, есть ли запланированные ответы
     checkForReplies();
 }
 
-// Проверка наличия запланированных ответов
+// Проверка ответов
 function checkForReplies() {
     const messages = appState.messages[appState.currentChat] || [];
     const lastMessage = messages[messages.length - 1];
 
-    // Ищем следующий ответ от контакта
     const nextReply = messages.find(msg =>
         msg.sender === 'contact' &&
         msg.delay > 0 &&
@@ -206,34 +203,181 @@ function scheduleReply(reply) {
 
     reply.scheduled = true;
 
-    // Показываем индикатор печати
     setTimeout(() => {
         typingIndicator.style.display = 'flex';
         appState.activeTyping = true;
     }, reply.delay * 1000 - (reply.typingTime || 5) * 1000);
 
-    // Отправляем сообщение
     appState.typingTimeouts[appState.currentChat] = setTimeout(() => {
         typingIndicator.style.display = 'none';
         appState.activeTyping = false;
 
-        // Добавляем сообщение в чат
         appState.messages[appState.currentChat].push(reply);
 
-        // Обновляем последнее сообщение в чате
         const chat = appState.chats.find(c => c.id === appState.currentChat);
         chat.lastMsg = reply.text;
         chat.time = reply.time;
 
         loadMessages();
         loadChats();
-
-        // Проверяем следующие ответы
         checkForReplies();
     }, reply.delay * 1000);
 }
 
-// Экспорт диалогов в JSON
+// Управление меню
+menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (userMenu.style.display === 'none' || userMenu.style.display === '') {
+        userMenu.style.display = 'block';
+    } else {
+        userMenu.style.display = 'none';
+    }
+});
+
+// Закрытие меню при клике вне его
+document.addEventListener('click', (e) => {
+    if (!userMenu.contains(e.target) && e.target !== menuBtn) {
+        userMenu.style.display = 'none';
+    }
+});
+
+function closeMenu() {
+    userMenu.style.display = 'none';
+}
+
+// Функции для модальных окон
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'flex';
+    closeMenu();
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// Профиль
+document.getElementById('profileMenuItem').addEventListener('click', () => {
+    document.getElementById('usernameInput').value = appState.username;
+    openModal('profileModal');
+});
+
+function saveProfile() {
+    appState.username = document.getElementById('usernameInput').value;
+    document.querySelector('.username').textContent = appState.username;
+    closeModal('profileModal');
+}
+
+// Новый диалог
+document.getElementById('newChatMenuItem').addEventListener('click', () => {
+    appState.editingChatId = null;
+    document.getElementById('chatModalTitle').textContent = 'Новый диалог';
+    document.getElementById('chatNameInput').value = '';
+    document.getElementById('chatStatusInput').value = 'онлайн';
+    openModal('chatModal');
+});
+
+// Редактирование диалога
+document.getElementById('editChatMenuItem').addEventListener('click', () => {
+    if (!appState.currentChat) {
+        alert('Выберите диалог для редактирования');
+        return;
+    }
+
+    const chat = appState.chats.find(c => c.id === appState.currentChat);
+    appState.editingChatId = chat.id;
+    document.getElementById('chatModalTitle').textContent = 'Редактировать диалог';
+    document.getElementById('chatNameInput').value = chat.name;
+    document.getElementById('chatStatusInput').value = chat.status || 'онлайн';
+    openModal('chatModal');
+});
+
+// Сохранение диалога
+document.getElementById('saveChatBtn').addEventListener('click', () => {
+    const name = document.getElementById('chatNameInput').value;
+    const status = document.getElementById('chatStatusInput').value;
+    const avatar = document.querySelector('.avatar-option.selected')?.textContent || '👤';
+
+    if (!name) {
+        alert('Введите название чата');
+        return;
+    }
+
+    if (appState.editingChatId) {
+        // Редактирование существующего
+        const chat = appState.chats.find(c => c.id === appState.editingChatId);
+        chat.name = name;
+        chat.status = status;
+        chat.avatar = avatar;
+
+        if (appState.currentChat === appState.editingChatId) {
+            updateChatHeader();
+        }
+    } else {
+        // Создание нового
+        const newId = 'chat_' + Date.now();
+        const newChat = {
+            id: newId,
+            name: name,
+            avatar: avatar,
+            lastMsg: 'Новый диалог',
+            time: 'только что',
+            status: status
+        };
+
+        appState.chats.push(newChat);
+        appState.messages[newId] = [];
+        appState.currentChat = newId;
+        updateChatHeader();
+    }
+
+    loadChats();
+    loadMessages();
+    closeModal('chatModal');
+
+    // Сбрасываем выделение аватара
+    document.querySelectorAll('.avatar-option').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+});
+
+// Удаление диалога
+document.getElementById('deleteChatMenuItem').addEventListener('click', () => {
+    if (!appState.currentChat) {
+        alert('Выберите диалог для удаления');
+        return;
+    }
+
+    if (confirm('Удалить этот диалог?')) {
+        const chatIndex = appState.chats.findIndex(c => c.id === appState.currentChat);
+        appState.chats.splice(chatIndex, 1);
+        delete appState.messages[appState.currentChat];
+
+        if (appState.chats.length > 0) {
+            appState.currentChat = appState.chats[0].id;
+            updateChatHeader();
+        } else {
+            appState.currentChat = null;
+            currentChatName.textContent = 'Нет диалогов';
+            currentChatAvatar.textContent = '👥';
+            chatStatus.textContent = '';
+            messagesContainer.innerHTML = '';
+        }
+
+        loadChats();
+        loadMessages();
+        closeMenu();
+    }
+});
+
+// Экспорт
+document.getElementById('exportMenuItem').addEventListener('click', exportDialogues);
+
+// Импорт
+document.getElementById('importMenuItem').addEventListener('click', () => {
+    importFile.click();
+});
+
+// Экспорт диалогов
 function exportDialogues() {
     const exportData = {
         chats: appState.chats.map(chat => ({
@@ -244,17 +388,17 @@ function exportDialogues() {
 
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-
     const exportFileDefaultName = `dialogues_${new Date().toISOString().slice(0,10)}.json`;
 
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+    closeMenu();
 }
 
-// Импорт диалогов из JSON
-function importDialogues(event) {
+// Импорт диалогов
+importFile.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -263,7 +407,6 @@ function importDialogues(event) {
         try {
             const data = JSON.parse(e.target.result);
 
-            // Очищаем старые таймеры
             Object.values(appState.typingTimeouts).forEach(timeout => {
                 clearTimeout(timeout);
             });
@@ -283,10 +426,9 @@ function importDialogues(event) {
 
             loadChats();
             loadMessages();
-
-            // Скрываем индикатор печати
             typingIndicator.style.display = 'none';
             appState.activeTyping = false;
+            closeMenu();
 
             alert('Диалоги успешно импортированы!');
         } catch (error) {
@@ -294,22 +436,26 @@ function importDialogues(event) {
         }
     };
     reader.readAsText(file);
-}
+});
 
-// Обработчики событий
+// Выбор аватара
+document.querySelectorAll('.avatar-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    });
+});
+
+// Обработчики отправки сообщений
 sendButton.addEventListener('click', sendMessage);
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
 });
 
-exportBtn.addEventListener('click', exportDialogues);
-importBtn.addEventListener('click', () => importFile.click());
-importFile.addEventListener('change', importDialogues);
-
 // Инициализация
 loadDialogues();
 
-// Запрос разрешения на уведомления
+// Запрос уведомлений
 if (Notification.permission === 'default') {
     Notification.requestPermission();
 }
