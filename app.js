@@ -9,8 +9,12 @@ let appState = {
     userAvatar: '👤',
     userAvatarUrl: null,
     editingChatId: null,
-    scheduledEvents: {} // для хранения запланированных событий
+    scheduledEvents: {}, // для хранения запланированных событий
+    pendingEvents: {} // для событий после сообщений
 };
+
+// Ключ для localStorage
+const STORAGE_KEY = 'fakegram_state';
 
 // DOM элементы
 const chatsList = document.getElementById('chatsList');
@@ -36,8 +40,78 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Загрузка диалогов из JSON
+// Функция сохранения состояния в localStorage
+function saveState() {
+    try {
+        // Очищаем временные данные перед сохранением
+        const stateToSave = {
+            currentChat: appState.currentChat,
+            chats: appState.chats,
+            messages: appState.messages,
+            username: appState.username,
+            userAvatar: appState.userAvatar,
+            userAvatarUrl: appState.userAvatarUrl,
+            // Не сохраняем таймауты и временные события
+            scheduledEvents: {},
+            pendingEvents: {},
+            typingTimeouts: {}
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        console.log('Состояние сохранено');
+    } catch (error) {
+        console.error('Ошибка сохранения состояния:', error);
+    }
+}
+
+// Функция загрузки состояния из localStorage
+function loadState() {
+    try {
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+            const parsed = JSON.parse(savedState);
+
+            // Восстанавливаем состояние
+            appState.currentChat = parsed.currentChat || null;
+            appState.chats = parsed.chats || [];
+            appState.messages = parsed.messages || {};
+            appState.username = parsed.username || 'Пользователь';
+            appState.userAvatar = parsed.userAvatar || '👤';
+            appState.userAvatarUrl = parsed.userAvatarUrl || null;
+
+            console.log('Состояние загружено из localStorage');
+            return true;
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки состояния:', error);
+    }
+    return false;
+}
+
+// Загрузка диалогов из JSON или localStorage
 async function loadDialogues() {
+    // Сначала пробуем загрузить из localStorage
+    if (loadState()) {
+        if (appState.chats.length > 0) {
+            // Восстанавливаем plannedEvents из чатов
+            appState.chats.forEach(chat => {
+                chat.plannedEvents = chat.plannedEvents || [];
+            });
+
+            updateChatHeader();
+            loadChats();
+            loadMessages();
+
+            // Запускаем планировщики для всех чатов
+            appState.chats.forEach(chat => {
+                scheduleChatEvents(chat.id);
+            });
+
+            return;
+        }
+    }
+
+    // Если нет сохраненного состояния, загружаем из JSON
     try {
         const response = await fetch('dialogues.json');
         const data = await response.json();
@@ -58,6 +132,14 @@ async function loadDialogues() {
 
         loadChats();
         loadMessages();
+
+        // Запускаем планировщики
+        appState.chats.forEach(chat => {
+            scheduleChatEvents(chat.id);
+        });
+
+        // Сохраняем загруженные данные
+        saveState();
     } catch (error) {
         console.error('Ошибка загрузки диалогов:', error);
         loadDemoData();
@@ -86,6 +168,7 @@ function loadDemoData() {
     appState.currentChat = 'demo1';
     loadChats();
     loadMessages();
+    saveState();
 }
 
 // Загрузка списка чатов
@@ -214,6 +297,9 @@ function sendMessage() {
     loadMessages();
     loadChats();
 
+    // Сохраняем после отправки сообщения
+    saveState();
+
     // Проверяем запланированные события после отправки сообщения
     checkPlannedEventsAfterMessage();
 }
@@ -230,7 +316,7 @@ function scheduleChatEvents(chatId) {
     appState.scheduledEvents[chatId] = [];
 
     // Планируем каждое событие
-    chat.plannedEvents.forEach((event, index) => {
+    chat.plannedEvents.forEach(event => {
         if (event.trigger === 'time') {
             // Событие по времени
             scheduleTimeBasedEvent(chatId, event);
@@ -345,6 +431,9 @@ function executeChatEvent(chatId, event) {
 
         loadMessages();
         loadChats();
+
+        // Сохраняем после получения сообщения
+        saveState();
     }
 }
 
@@ -464,6 +553,7 @@ function saveProfile() {
     appState.username = document.getElementById('usernameInput').value;
     updateUserAvatar();
     closeModal('profileModal');
+    saveState(); // Сохраняем после изменения профиля
 }
 
 // ========== УПРАВЛЕНИЕ ДИАЛОГАМИ ==========
@@ -507,7 +597,7 @@ document.getElementById('editChatMenuItem').addEventListener('click', () => {
     }
 
     // Загружаем события
-    window.currentEvents = chat.plannedEvents || [];
+    window.currentEvents = chat.plannedEvents ? [...chat.plannedEvents] : [];
     renderEventsList();
 
     openModal('chatModal');
@@ -733,6 +823,9 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
     loadMessages();
     closeModal('chatModal');
 
+    // Сохраняем после изменений
+    saveState();
+
     // Очищаем временные данные
     window.tempChatAvatar = null;
     window.currentEvents = [];
@@ -764,6 +857,9 @@ document.getElementById('deleteChatMenuItem').addEventListener('click', () => {
         loadChats();
         loadMessages();
         closeMenu();
+
+        // Сохраняем после удаления
+        saveState();
     }
 });
 
@@ -830,6 +926,9 @@ importFile.addEventListener('change', (event) => {
             appState.activeTyping = false;
             closeMenu();
 
+            // Сохраняем импортированные данные
+            saveState();
+
             alert('Диалоги успешно импортированы!');
         } catch (error) {
             alert('Ошибка при импорте файла: ' + error.message);
@@ -847,6 +946,11 @@ messageInput.addEventListener('keypress', (e) => {
 // Инициализация
 loadDialogues();
 updateUserAvatar();
+
+// Сохраняем состояние перед закрытием страницы
+window.addEventListener('beforeunload', () => {
+    saveState();
+});
 
 // Запрос уведомлений
 if (Notification.permission === 'default') {
