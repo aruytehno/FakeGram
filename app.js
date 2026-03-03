@@ -956,3 +956,61 @@ window.addEventListener('beforeunload', () => {
 if (Notification.permission === 'default') {
     Notification.requestPermission();
 }
+
+
+// Mobile navigation functionality
+const mobileNav = document.getElementById('mobileNav');
+const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+const sidebar = document.querySelector('.sidebar');
+
+// Create mobile back button
+const backBtn = document.createElement('button');
+backBtn.className = 'mobile-back-btn';
+backBtn.innerHTML = '←';
+backBtn.onclick = () => {
+    sidebar.classList.remove('active');
+};
+
+// Add back button to chat header
+document.querySelector('.chat-header').appendChild(backBtn);
+
+// Handle mobile navigation
+mobileNavItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+        // Remove active class from all items
+        mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
+        // Add active class to clicked item
+        item.classList.add('active');
+
+        const view = item.dataset.view;
+
+        if (view === 'chats') {
+            sidebar.classList.add('active');
+        } else if (view === 'contacts') {
+            // Handle contacts view
+            alert('Контакты будут доступны в следующем обновлении');
+        } else if (item.id === 'mobileProfileBtn') {
+            // Open profile modal
+            document.getElementById('profileMenuItem').click();
+        } else if (item.id === 'mobileSettingsBtn') {
+            // Open settings
+            alert('Настройки будут доступны в следующем обновлении');
+        }
+    });
+});
+
+// Close sidebar when clicking on chat area in mobile
+document.querySelector('.chat-area').addEventListener('click', (e) => {
+    if (window.innerWidth <= 768) {
+        if (!e.target.closest('.sidebar') && !e.target.closest('.mobile-back-btn')) {
+            sidebar.classList.remove('active');
+        }
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        sidebar.classList.remove('active');
+    }
+});
