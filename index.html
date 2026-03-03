@@ -15,13 +15,13 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="user-info">
-                <div class="avatar">👤</div>
-                <span class="username">Пользователь</span>
+                <div class="avatar" id="currentUserAvatar">👤</div>
+                <span class="username" id="username">Пользователь</span>
             </div>
             <button class="menu-btn" id="menuBtn">☰</button>
         </div>
 
-        <!-- Меню пользователя (скрыто по умолчанию) -->
+        <!-- Меню пользователя -->
         <div class="user-menu" id="userMenu" style="display: none;">
             <div class="menu-section">
                 <div class="menu-item" id="profileMenuItem">
@@ -94,7 +94,7 @@
     </main>
 </div>
 
-<!-- Модальные окна -->
+<!-- Модальное окно профиля -->
 <div class="modal" id="profileModal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -102,19 +102,21 @@
             <button class="close-btn" onclick="closeModal('profileModal')">✖</button>
         </div>
         <div class="modal-body">
+            <div class="avatar-section">
+                <div class="current-avatar" id="profileAvatarPreview">👤</div>
+                <div class="avatar-upload">
+                    <button class="btn-secondary" id="uploadAvatarBtn">Загрузить фото</button>
+                    <input type="file" id="avatarUpload" accept="image/*" style="display: none">
+                    <button class="btn-secondary" id="avatarUrlBtn">По ссылке</button>
+                </div>
+                <div class="avatar-url-input" id="avatarUrlInput" style="display: none;">
+                    <input type="text" id="avatarUrl" placeholder="https://example.com/avatar.jpg">
+                    <button class="btn-primary" id="applyAvatarUrl">Применить</button>
+                </div>
+            </div>
             <div class="form-group">
                 <label>Имя пользователя</label>
                 <input type="text" id="usernameInput" value="Пользователь">
-            </div>
-            <div class="form-group">
-                <label>Аватар</label>
-                <div class="avatar-selector">
-                    <button class="avatar-option">👤</button>
-                    <button class="avatar-option">👨</button>
-                    <button class="avatar-option">👩</button>
-                    <button class="avatar-option">🧑</button>
-                    <button class="avatar-option">👶</button>
-                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -124,6 +126,7 @@
     </div>
 </div>
 
+<!-- Модальное окно диалога -->
 <div class="modal" id="chatModal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -131,19 +134,21 @@
             <button class="close-btn" onclick="closeModal('chatModal')">✖</button>
         </div>
         <div class="modal-body">
+            <div class="avatar-section">
+                <div class="current-avatar" id="chatAvatarPreview">👥</div>
+                <div class="avatar-upload">
+                    <button class="btn-secondary" id="uploadChatAvatarBtn">Загрузить фото</button>
+                    <input type="file" id="chatAvatarUpload" accept="image/*" style="display: none">
+                    <button class="btn-secondary" id="chatAvatarUrlBtn">По ссылке</button>
+                </div>
+                <div class="avatar-url-input" id="chatAvatarUrlInput" style="display: none;">
+                    <input type="text" id="chatAvatarUrl" placeholder="https://example.com/avatar.jpg">
+                    <button class="btn-primary" id="applyChatAvatarUrl">Применить</button>
+                </div>
+            </div>
             <div class="form-group">
                 <label>Название чата</label>
                 <input type="text" id="chatNameInput" placeholder="Например: Алексей">
-            </div>
-            <div class="form-group">
-                <label>Аватар</label>
-                <div class="avatar-selector">
-                    <button class="avatar-option">👤</button>
-                    <button class="avatar-option">👨‍💻</button>
-                    <button class="avatar-option">👩‍🎨</button>
-                    <button class="avatar-option">👨‍👩‍👧</button>
-                    <button class="avatar-option">💼</button>
-                </div>
             </div>
             <div class="form-group">
                 <label>Статус</label>
@@ -157,6 +162,7 @@
     </div>
 </div>
 
+<!-- Модальное окно сообщений -->
 <div class="modal" id="messageModal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">

@@ -7,6 +7,7 @@ let appState = {
     activeTyping: false,
     username: 'Пользователь',
     userAvatar: '👤',
+    userAvatarUrl: null,
     editingChatId: null
 };
 
@@ -22,6 +23,8 @@ const typingIndicator = document.getElementById('typingIndicator');
 const menuBtn = document.getElementById('menuBtn');
 const userMenu = document.getElementById('userMenu');
 const importFile = document.getElementById('importFile');
+const currentUserAvatar = document.getElementById('currentUserAvatar');
+const usernameSpan = document.getElementById('username');
 
 // Регистрация Service Worker для PWA
 if ('serviceWorker' in navigator) {
@@ -62,7 +65,7 @@ async function loadDialogues() {
 // Демо-данные
 function loadDemoData() {
     appState.chats = [
-        { id: 'demo1', name: 'Демо чат', avatar: '👤', lastMsg: 'Загрузите dialogues.json', time: 'сейчас', status: 'ожидание' }
+        { id: 'demo1', name: 'Демо чат', avatar: '👤', avatarUrl: null, lastMsg: 'Загрузите dialogues.json', time: 'сейчас', status: 'ожидание' }
     ];
     appState.messages = {
         demo1: [
@@ -82,8 +85,14 @@ function loadChats() {
         const chatEl = document.createElement('div');
         chatEl.className = `chat-item ${chat.id === appState.currentChat ? 'active' : ''}`;
         chatEl.dataset.chatId = chat.id;
+
+        // Создаем аватар с поддержкой кастомных изображений
+        const avatarHtml = chat.avatarUrl
+            ? `<img src="${chat.avatarUrl}" alt="${chat.name}">`
+            : chat.avatar;
+
         chatEl.innerHTML = `
-            <div class="avatar">${chat.avatar}</div>
+            <div class="avatar">${avatarHtml}</div>
             <div class="chat-item-info">
                 <div class="chat-item-name">${chat.name}</div>
                 <div class="chat-item-lastmsg">${lastMsg?.text || chat.lastMsg || 'Нет сообщений'}</div>
@@ -106,7 +115,14 @@ function updateChatHeader() {
     const chat = appState.chats.find(c => c.id === appState.currentChat);
     if (chat) {
         currentChatName.textContent = chat.name;
-        currentChatAvatar.textContent = chat.avatar;
+
+        // Обновляем аватар в заголовке
+        if (chat.avatarUrl) {
+            currentChatAvatar.innerHTML = `<img src="${chat.avatarUrl}" alt="${chat.name}">`;
+        } else {
+            currentChatAvatar.innerHTML = chat.avatar;
+        }
+
         chatStatus.textContent = chat.status || 'онлайн';
     }
 }
@@ -227,14 +243,9 @@ function scheduleReply(reply) {
 // Управление меню
 menuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (userMenu.style.display === 'none' || userMenu.style.display === '') {
-        userMenu.style.display = 'block';
-    } else {
-        userMenu.style.display = 'none';
-    }
+    userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
 });
 
-// Закрытие меню при клике вне его
 document.addEventListener('click', (e) => {
     if (!userMenu.contains(e.target) && e.target !== menuBtn) {
         userMenu.style.display = 'none';
@@ -255,17 +266,99 @@ function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
 }
 
-// Профиль
+// ========== УПРАВЛЕНИЕ АВАТАРАМИ ==========
+
+// Функция загрузки изображения
+function handleImageUpload(file, callback) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        callback(e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+// Функция установки аватара по URL
+function setAvatarFromUrl(url, previewElement, callback) {
+    // Проверяем, что URL ведет на изображение
+    const img = new Image();
+    img.onload = function() {
+        callback(url);
+        previewElement.innerHTML = `<img src="${url}" alt="avatar">`;
+    };
+    img.onerror = function() {
+        alert('Не удалось загрузить изображение по ссылке');
+    };
+    img.src = url;
+}
+
+// ========== ПРОФИЛЬ ==========
+
+// Обновление аватара пользователя
+function updateUserAvatar() {
+    if (appState.userAvatarUrl) {
+        currentUserAvatar.innerHTML = `<img src="${appState.userAvatarUrl}" alt="${appState.username}">`;
+    } else {
+        currentUserAvatar.innerHTML = appState.userAvatar;
+    }
+    usernameSpan.textContent = appState.username;
+}
+
+// Открытие профиля
 document.getElementById('profileMenuItem').addEventListener('click', () => {
     document.getElementById('usernameInput').value = appState.username;
+
+    // Показываем текущий аватар
+    const preview = document.getElementById('profileAvatarPreview');
+    if (appState.userAvatarUrl) {
+        preview.innerHTML = `<img src="${appState.userAvatarUrl}" alt="avatar">`;
+    } else {
+        preview.innerHTML = appState.userAvatar;
+    }
+
     openModal('profileModal');
 });
 
+// Загрузка аватара профиля из файла
+document.getElementById('uploadAvatarBtn').addEventListener('click', () => {
+    document.getElementById('avatarUpload').click();
+});
+
+document.getElementById('avatarUpload').addEventListener('change', (e) => {
+    handleImageUpload(e.target.files[0], (imageData) => {
+        appState.userAvatarUrl = imageData;
+        appState.userAvatar = null;
+        document.getElementById('profileAvatarPreview').innerHTML = `<img src="${imageData}" alt="avatar">`;
+    });
+});
+
+// Загрузка аватара профиля по URL
+document.getElementById('avatarUrlBtn').addEventListener('click', () => {
+    const urlInput = document.getElementById('avatarUrlInput');
+    urlInput.style.display = urlInput.style.display === 'none' ? 'flex' : 'none';
+});
+
+document.getElementById('applyAvatarUrl').addEventListener('click', () => {
+    const url = document.getElementById('avatarUrl').value;
+    if (url) {
+        setAvatarFromUrl(url, document.getElementById('profileAvatarPreview'), (imageUrl) => {
+            appState.userAvatarUrl = imageUrl;
+            appState.userAvatar = null;
+            document.getElementById('avatarUrlInput').style.display = 'none';
+            document.getElementById('avatarUrl').value = '';
+        });
+    }
+});
+
+// Сохранение профиля
 function saveProfile() {
     appState.username = document.getElementById('usernameInput').value;
-    document.querySelector('.username').textContent = appState.username;
+    updateUserAvatar();
     closeModal('profileModal');
 }
+
+// ========== УПРАВЛЕНИЕ ДИАЛОГАМИ ==========
 
 // Новый диалог
 document.getElementById('newChatMenuItem').addEventListener('click', () => {
@@ -273,6 +366,10 @@ document.getElementById('newChatMenuItem').addEventListener('click', () => {
     document.getElementById('chatModalTitle').textContent = 'Новый диалог';
     document.getElementById('chatNameInput').value = '';
     document.getElementById('chatStatusInput').value = 'онлайн';
+
+    // Сбрасываем аватар
+    document.getElementById('chatAvatarPreview').innerHTML = '👥';
+
     openModal('chatModal');
 });
 
@@ -288,14 +385,71 @@ document.getElementById('editChatMenuItem').addEventListener('click', () => {
     document.getElementById('chatModalTitle').textContent = 'Редактировать диалог';
     document.getElementById('chatNameInput').value = chat.name;
     document.getElementById('chatStatusInput').value = chat.status || 'онлайн';
+
+    // Показываем текущий аватар
+    const preview = document.getElementById('chatAvatarPreview');
+    if (chat.avatarUrl) {
+        preview.innerHTML = `<img src="${chat.avatarUrl}" alt="avatar">`;
+    } else {
+        preview.innerHTML = chat.avatar;
+    }
+
     openModal('chatModal');
+});
+
+// Загрузка аватара чата из файла
+document.getElementById('uploadChatAvatarBtn').addEventListener('click', () => {
+    document.getElementById('chatAvatarUpload').click();
+});
+
+document.getElementById('chatAvatarUpload').addEventListener('change', (e) => {
+    handleImageUpload(e.target.files[0], (imageData) => {
+        // Сохраняем во временную переменную
+        window.tempChatAvatar = {
+            url: imageData,
+            isUrl: true
+        };
+        document.getElementById('chatAvatarPreview').innerHTML = `<img src="${imageData}" alt="avatar">`;
+    });
+});
+
+// Загрузка аватара чата по URL
+document.getElementById('chatAvatarUrlBtn').addEventListener('click', () => {
+    const urlInput = document.getElementById('chatAvatarUrlInput');
+    urlInput.style.display = urlInput.style.display === 'none' ? 'flex' : 'none';
+});
+
+document.getElementById('applyChatAvatarUrl').addEventListener('click', () => {
+    const url = document.getElementById('chatAvatarUrl').value;
+    if (url) {
+        setAvatarFromUrl(url, document.getElementById('chatAvatarPreview'), (imageUrl) => {
+            window.tempChatAvatar = {
+                url: imageUrl,
+                isUrl: true
+            };
+            document.getElementById('chatAvatarUrlInput').style.display = 'none';
+            document.getElementById('chatAvatarUrl').value = '';
+        });
+    }
 });
 
 // Сохранение диалога
 document.getElementById('saveChatBtn').addEventListener('click', () => {
     const name = document.getElementById('chatNameInput').value;
     const status = document.getElementById('chatStatusInput').value;
-    const avatar = document.querySelector('.avatar-option.selected')?.textContent || '👤';
+
+    // Получаем аватар
+    let avatar = '👤';
+    let avatarUrl = null;
+
+    if (window.tempChatAvatar) {
+        avatarUrl = window.tempChatAvatar.url;
+        avatar = null;
+    } else {
+        // Если нет загруженного, используем выбранный из списка или эмодзи
+        const selectedAvatar = document.querySelector('.avatar-option.selected');
+        avatar = selectedAvatar ? selectedAvatar.textContent : '👤';
+    }
 
     if (!name) {
         alert('Введите название чата');
@@ -308,6 +462,7 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
         chat.name = name;
         chat.status = status;
         chat.avatar = avatar;
+        chat.avatarUrl = avatarUrl;
 
         if (appState.currentChat === appState.editingChatId) {
             updateChatHeader();
@@ -319,6 +474,7 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
             id: newId,
             name: name,
             avatar: avatar,
+            avatarUrl: avatarUrl,
             lastMsg: 'Новый диалог',
             time: 'только что',
             status: status
@@ -333,6 +489,9 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
     loadChats();
     loadMessages();
     closeModal('chatModal');
+
+    // Очищаем временные данные
+    window.tempChatAvatar = null;
 
     // Сбрасываем выделение аватара
     document.querySelectorAll('.avatar-option').forEach(btn => {
@@ -358,7 +517,7 @@ document.getElementById('deleteChatMenuItem').addEventListener('click', () => {
         } else {
             appState.currentChat = null;
             currentChatName.textContent = 'Нет диалогов';
-            currentChatAvatar.textContent = '👥';
+            currentChatAvatar.innerHTML = '👥';
             chatStatus.textContent = '';
             messagesContainer.innerHTML = '';
         }
@@ -438,11 +597,13 @@ importFile.addEventListener('change', (event) => {
     reader.readAsText(file);
 });
 
-// Выбор аватара
+// Выбор аватара из списка эмодзи
 document.querySelectorAll('.avatar-option').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
+        // Если выбран эмодзи, сбрасываем загруженный аватар
+        window.tempChatAvatar = null;
     });
 });
 
@@ -454,6 +615,7 @@ messageInput.addEventListener('keypress', (e) => {
 
 // Инициализация
 loadDialogues();
+updateUserAvatar();
 
 // Запрос уведомлений
 if (Notification.permission === 'default') {
