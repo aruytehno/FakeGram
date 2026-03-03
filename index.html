@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Mini</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#2b5278">
+</head>
+<body>
+<div class="app">
+    <!-- Боковая панель с чатами -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="user-info">
+                <div class="avatar">👤</div>
+                <span class="username">Пользователь</span>
+            </div>
+            <button class="new-chat-btn">➕</button>
+        </div>
+        <div class="chats-list" id="chatsList">
+            <!-- Чаты будут добавляться сюда -->
+        </div>
+    </aside>
+
+    <!-- Основная область чата -->
+    <main class="chat-area">
+        <div class="chat-header" id="chatHeader">
+            <div class="chat-info">
+                <div class="avatar" id="currentChatAvatar">👥</div>
+                <div>
+                    <div class="chat-name" id="currentChatName">Общий чат</div>
+                    <div class="chat-status" id="chatStatus">был(а) недавно</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="messages-container" id="messagesContainer">
+            <!-- Сообщения будут здесь -->
+        </div>
+
+        <div class="message-input-container">
+            <button class="attach-btn">📎</button>
+            <input type="text" class="message-input" id="messageInput" placeholder="Сообщение">
+            <button class="send-btn" id="sendButton">📤</button>
+        </div>
+    </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
