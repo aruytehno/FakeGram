@@ -8,7 +8,8 @@ let appState = {
     username: 'Пользователь',
     userAvatar: '👤',
     userAvatarUrl: null,
-    editingChatId: null
+    editingChatId: null,
+    scheduledEvents: {} // для хранения запланированных событий
 };
 
 // DOM элементы
@@ -43,9 +44,10 @@ async function loadDialogues() {
 
         appState.chats = data.chats;
 
-        // Преобразуем сообщения в удобный формат
+        // Преобразуем сообщения в удобный формат и добавляем plannedEvents
         appState.chats.forEach(chat => {
             appState.messages[chat.id] = chat.messages || [];
+            chat.plannedEvents = chat.plannedEvents || [];
             delete chat.messages;
         });
 
@@ -65,7 +67,16 @@ async function loadDialogues() {
 // Демо-данные
 function loadDemoData() {
     appState.chats = [
-        { id: 'demo1', name: 'Демо чат', avatar: '👤', avatarUrl: null, lastMsg: 'Загрузите dialogues.json', time: 'сейчас', status: 'ожидание' }
+        {
+            id: 'demo1',
+            name: 'Демо чат',
+            avatar: '👤',
+            avatarUrl: null,
+            lastMsg: 'Загрузите dialogues.json',
+            time: 'сейчас',
+            status: 'ожидание',
+            plannedEvents: []
+        }
     ];
     appState.messages = {
         demo1: [
@@ -129,8 +140,14 @@ function updateChatHeader() {
 
 // Переключение чата
 function switchChat(chatId) {
+    // Очищаем все таймауты предыдущего чата
     if (appState.typingTimeouts[appState.currentChat]) {
         clearTimeout(appState.typingTimeouts[appState.currentChat]);
+    }
+
+    // Очищаем запланированные события
+    if (appState.scheduledEvents[appState.currentChat]) {
+        appState.scheduledEvents[appState.currentChat].forEach(timeout => clearTimeout(timeout));
     }
 
     appState.currentChat = chatId;
@@ -140,6 +157,9 @@ function switchChat(chatId) {
 
     typingIndicator.style.display = 'none';
     appState.activeTyping = false;
+
+    // Запускаем планировщик для нового чата
+    scheduleChatEvents(chatId);
 
     // Закрываем меню при переключении чата
     closeMenu();
@@ -193,51 +213,139 @@ function sendMessage() {
     messageInput.value = '';
     loadMessages();
     loadChats();
-    checkForReplies();
+
+    // Проверяем запланированные события после отправки сообщения
+    checkPlannedEventsAfterMessage();
 }
 
-// Проверка ответов
-function checkForReplies() {
-    const messages = appState.messages[appState.currentChat] || [];
-    const lastMessage = messages[messages.length - 1];
+// Планирование событий чата
+function scheduleChatEvents(chatId) {
+    const chat = appState.chats.find(c => c.id === chatId);
+    if (!chat || !chat.plannedEvents) return;
 
-    const nextReply = messages.find(msg =>
-        msg.sender === 'contact' &&
-        msg.delay > 0 &&
-        !msg.scheduled &&
-        messages.indexOf(msg) > messages.indexOf(lastMessage)
-    );
-
-    if (nextReply && !appState.activeTyping) {
-        scheduleReply(nextReply);
+    // Очищаем предыдущие события
+    if (appState.scheduledEvents[chatId]) {
+        appState.scheduledEvents[chatId].forEach(timeout => clearTimeout(timeout));
     }
+    appState.scheduledEvents[chatId] = [];
+
+    // Планируем каждое событие
+    chat.plannedEvents.forEach((event, index) => {
+        if (event.trigger === 'time') {
+            // Событие по времени
+            scheduleTimeBasedEvent(chatId, event);
+        } else if (event.trigger === 'after_message') {
+            // Событие после моего сообщения
+            scheduleMessageBasedEvent(chatId, event);
+        }
+    });
 }
 
-// Планирование ответа
-function scheduleReply(reply) {
-    if (!reply || reply.scheduled) return;
+// Событие по времени
+function scheduleTimeBasedEvent(chatId, event) {
+    const now = new Date();
+    const [hours, minutes] = event.time.split(':').map(Number);
+    const eventTime = new Date();
+    eventTime.setHours(hours, minutes, 0, 0);
 
-    reply.scheduled = true;
+    let delay = eventTime - now;
+    if (delay < 0) {
+        // Если время уже прошло сегодня, планируем на завтра
+        delay += 24 * 60 * 60 * 1000;
+    }
 
-    setTimeout(() => {
-        typingIndicator.style.display = 'flex';
-        appState.activeTyping = true;
-    }, reply.delay * 1000 - (reply.typingTime || 5) * 1000);
+    const timeout = setTimeout(() => {
+        executeChatEvent(chatId, event);
+    }, delay);
 
-    appState.typingTimeouts[appState.currentChat] = setTimeout(() => {
-        typingIndicator.style.display = 'none';
-        appState.activeTyping = false;
+    appState.scheduledEvents[chatId].push(timeout);
+}
 
-        appState.messages[appState.currentChat].push(reply);
+// Событие после моего сообщения
+function scheduleMessageBasedEvent(chatId, event) {
+    // Сохраняем событие для проверки после отправки сообщений
+    if (!appState.pendingEvents) appState.pendingEvents = {};
+    if (!appState.pendingEvents[chatId]) appState.pendingEvents[chatId] = [];
 
-        const chat = appState.chats.find(c => c.id === appState.currentChat);
-        chat.lastMsg = reply.text;
-        chat.time = reply.time;
+    appState.pendingEvents[chatId].push({
+        event: event,
+        triggered: false
+    });
+}
+
+// Проверка запланированных событий после сообщения
+function checkPlannedEventsAfterMessage() {
+    const chatId = appState.currentChat;
+    if (!appState.pendingEvents || !appState.pendingEvents[chatId]) return;
+
+    appState.pendingEvents[chatId].forEach(pending => {
+        if (!pending.triggered) {
+            pending.triggered = true;
+
+            // Показываем "печатает"
+            setTimeout(() => {
+                typingIndicator.style.display = 'flex';
+                appState.activeTyping = true;
+
+                // Меняем статус на "печатает"
+                const chat = appState.chats.find(c => c.id === chatId);
+                const originalStatus = chat.status;
+                chat.status = 'печатает';
+                updateChatHeader();
+
+                // Отправляем сообщение через время печатания
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
+                    appState.activeTyping = false;
+
+                    // Отправляем запланированное сообщение
+                    executeChatEvent(chatId, pending.event);
+
+                    // Восстанавливаем статус
+                    chat.status = originalStatus;
+                    updateChatHeader();
+
+                }, pending.event.typingTime * 1000);
+
+            }, pending.event.delay * 1000);
+        }
+    });
+}
+
+// Выполнение события чата
+function executeChatEvent(chatId, event) {
+    const chat = appState.chats.find(c => c.id === chatId);
+
+    // Изменяем статус
+    if (event.status) {
+        chat.status = event.status;
+        updateChatHeader();
+    }
+
+    // Отправляем сообщение
+    if (event.message) {
+        const now = new Date();
+        const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const newMessage = {
+            id: Date.now(),
+            text: event.message,
+            sender: 'contact',
+            time: time,
+            type: 'received'
+        };
+
+        if (!appState.messages[chatId]) {
+            appState.messages[chatId] = [];
+        }
+
+        appState.messages[chatId].push(newMessage);
+        chat.lastMsg = event.message;
+        chat.time = time;
 
         loadMessages();
         loadChats();
-        checkForReplies();
-    }, reply.delay * 1000);
+    }
 }
 
 // Управление меню
@@ -370,6 +478,10 @@ document.getElementById('newChatMenuItem').addEventListener('click', () => {
     // Сбрасываем аватар
     document.getElementById('chatAvatarPreview').innerHTML = '👥';
 
+    // Очищаем список событий
+    document.getElementById('eventsList').innerHTML = '';
+    window.currentEvents = [];
+
     openModal('chatModal');
 });
 
@@ -393,6 +505,10 @@ document.getElementById('editChatMenuItem').addEventListener('click', () => {
     } else {
         preview.innerHTML = chat.avatar;
     }
+
+    // Загружаем события
+    window.currentEvents = chat.plannedEvents || [];
+    renderEventsList();
 
     openModal('chatModal');
 });
@@ -433,6 +549,130 @@ document.getElementById('applyChatAvatarUrl').addEventListener('click', () => {
     }
 });
 
+// Добавление нового события
+document.getElementById('addEventBtn').addEventListener('click', () => {
+    document.getElementById('eventModalTitle').textContent = 'Новое событие';
+    document.getElementById('eventForm').reset();
+    document.getElementById('eventId').value = '';
+    document.getElementById('eventTimeGroup').style.display = 'none';
+    document.getElementById('eventDelayGroup').style.display = 'none';
+    openModal('eventModal');
+});
+
+// Изменение типа триггера
+document.getElementById('eventTrigger').addEventListener('change', (e) => {
+    const trigger = e.target.value;
+    document.getElementById('eventTimeGroup').style.display = trigger === 'time' ? 'block' : 'none';
+    document.getElementById('eventDelayGroup').style.display = trigger === 'after_message' ? 'block' : 'none';
+});
+
+// Сохранение события
+document.getElementById('saveEventBtn').addEventListener('click', () => {
+    const eventId = document.getElementById('eventId').value;
+    const event = {
+        trigger: document.getElementById('eventTrigger').value,
+        message: document.getElementById('eventMessage').value,
+        status: document.getElementById('eventStatus').value,
+        typingTime: parseInt(document.getElementById('eventTypingTime').value) || 5
+    };
+
+    if (event.trigger === 'time') {
+        event.time = document.getElementById('eventTime').value;
+        if (!event.time) {
+            alert('Укажите время события');
+            return;
+        }
+    } else if (event.trigger === 'after_message') {
+        event.delay = parseInt(document.getElementById('eventDelay').value) || 10;
+    }
+
+    if (!event.message) {
+        alert('Введите текст сообщения');
+        return;
+    }
+
+    if (eventId) {
+        // Редактирование существующего
+        const index = window.currentEvents.findIndex(e => e.id === parseInt(eventId));
+        if (index !== -1) {
+            event.id = parseInt(eventId);
+            window.currentEvents[index] = event;
+        }
+    } else {
+        // Новое событие
+        event.id = Date.now();
+        window.currentEvents.push(event);
+    }
+
+    renderEventsList();
+    closeModal('eventModal');
+});
+
+// Редактирование события
+function editEvent(eventId) {
+    const event = window.currentEvents.find(e => e.id === eventId);
+    if (!event) return;
+
+    document.getElementById('eventModalTitle').textContent = 'Редактировать событие';
+    document.getElementById('eventId').value = event.id;
+    document.getElementById('eventTrigger').value = event.trigger;
+    document.getElementById('eventMessage').value = event.message;
+    document.getElementById('eventStatus').value = event.status || '';
+    document.getElementById('eventTypingTime').value = event.typingTime || 5;
+
+    if (event.trigger === 'time') {
+        document.getElementById('eventTime').value = event.time || '';
+        document.getElementById('eventTimeGroup').style.display = 'block';
+        document.getElementById('eventDelayGroup').style.display = 'none';
+    } else if (event.trigger === 'after_message') {
+        document.getElementById('eventDelay').value = event.delay || 10;
+        document.getElementById('eventTimeGroup').style.display = 'none';
+        document.getElementById('eventDelayGroup').style.display = 'block';
+    }
+
+    openModal('eventModal');
+}
+
+// Удаление события
+function deleteEvent(eventId) {
+    if (confirm('Удалить это событие?')) {
+        window.currentEvents = window.currentEvents.filter(e => e.id !== eventId);
+        renderEventsList();
+    }
+}
+
+// Отображение списка событий
+function renderEventsList() {
+    const eventsList = document.getElementById('eventsList');
+    eventsList.innerHTML = '';
+
+    window.currentEvents.forEach(event => {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'event-item';
+
+        const triggerText = event.trigger === 'time'
+            ? `Время: ${event.time}`
+            : `Через ${event.delay} сек после моего сообщения`;
+
+        eventEl.innerHTML = `
+            <div class="event-header">
+                <span class="event-trigger">${triggerText}</span>
+                <div class="event-actions">
+                    <button class="event-edit-btn" onclick="editEvent(${event.id})">✏️</button>
+                    <button class="event-delete-btn" onclick="deleteEvent(${event.id})">🗑️</button>
+                </div>
+            </div>
+            <div class="event-message">${event.message}</div>
+            <div class="event-details">
+                <span>Статус: ${event.status || 'не меняется'}</span>
+                <span>Печатает: ${event.typingTime} сек</span>
+            </div>
+        `;
+
+        eventsList.appendChild(eventEl);
+    });
+}
+
 // Сохранение диалога
 document.getElementById('saveChatBtn').addEventListener('click', () => {
     const name = document.getElementById('chatNameInput').value;
@@ -446,9 +686,8 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
         avatarUrl = window.tempChatAvatar.url;
         avatar = null;
     } else {
-        // Если нет загруженного, используем выбранный из списка или эмодзи
-        const selectedAvatar = document.querySelector('.avatar-option.selected');
-        avatar = selectedAvatar ? selectedAvatar.textContent : '👤';
+        // Если нет загруженного, используем эмодзи
+        avatar = '👤';
     }
 
     if (!name) {
@@ -463,9 +702,12 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
         chat.status = status;
         chat.avatar = avatar;
         chat.avatarUrl = avatarUrl;
+        chat.plannedEvents = window.currentEvents || [];
 
         if (appState.currentChat === appState.editingChatId) {
             updateChatHeader();
+            // Перезапускаем планировщик для обновленного чата
+            scheduleChatEvents(appState.currentChat);
         }
     } else {
         // Создание нового
@@ -477,7 +719,8 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
             avatarUrl: avatarUrl,
             lastMsg: 'Новый диалог',
             time: 'только что',
-            status: status
+            status: status,
+            plannedEvents: window.currentEvents || []
         };
 
         appState.chats.push(newChat);
@@ -492,11 +735,7 @@ document.getElementById('saveChatBtn').addEventListener('click', () => {
 
     // Очищаем временные данные
     window.tempChatAvatar = null;
-
-    // Сбрасываем выделение аватара
-    document.querySelectorAll('.avatar-option').forEach(btn => {
-        btn.classList.remove('selected');
-    });
+    window.currentEvents = [];
 });
 
 // Удаление диалога
@@ -541,7 +780,8 @@ function exportDialogues() {
     const exportData = {
         chats: appState.chats.map(chat => ({
             ...chat,
-            messages: appState.messages[chat.id] || []
+            messages: appState.messages[chat.id] || [],
+            plannedEvents: chat.plannedEvents || []
         }))
     };
 
@@ -575,6 +815,7 @@ importFile.addEventListener('change', (event) => {
 
             appState.chats.forEach(chat => {
                 appState.messages[chat.id] = chat.messages || [];
+                chat.plannedEvents = chat.plannedEvents || [];
                 delete chat.messages;
             });
 
@@ -595,16 +836,6 @@ importFile.addEventListener('change', (event) => {
         }
     };
     reader.readAsText(file);
-});
-
-// Выбор аватара из списка эмодзи
-document.querySelectorAll('.avatar-option').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        // Если выбран эмодзи, сбрасываем загруженный аватар
-        window.tempChatAvatar = null;
-    });
 });
 
 // Обработчики отправки сообщений

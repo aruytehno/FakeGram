@@ -13,8 +13,7 @@
           "text": "Привет! Как дела?",
           "sender": "contact",
           "time": "10:30",
-          "type": "received",
-          "delay": 0
+          "type": "received"
         },
         {
           "id": 2,
@@ -22,15 +21,24 @@
           "sender": "me",
           "time": "10:32",
           "type": "sent"
+        }
+      ],
+      "plannedEvents": [
+        {
+          "id": 1001,
+          "trigger": "after_message",
+          "delay": 10,
+          "typingTime": 5,
+          "message": "Круто! А над чем именно?",
+          "status": "печатает"
         },
         {
-          "id": 3,
-          "text": "Круто! А над чем именно?",
-          "sender": "contact",
-          "time": "10:35",
-          "type": "received",
-          "delay": 180,
-          "typingTime": 5
+          "id": 1002,
+          "trigger": "time",
+          "time": "18:00",
+          "typingTime": 8,
+          "message": "Как прошел день?",
+          "status": "онлайн"
         }
       ]
     },
@@ -47,8 +55,7 @@
           "text": "Привет! Ты уже видела новые фото?",
           "sender": "contact",
           "time": "09:00",
-          "type": "received",
-          "delay": 0
+          "type": "received"
         },
         {
           "id": 2,
@@ -56,24 +63,32 @@
           "sender": "me",
           "time": "09:05",
           "type": "sent"
+        }
+      ],
+      "plannedEvents": [
+        {
+          "id": 2001,
+          "trigger": "after_message",
+          "delay": 15,
+          "typingTime": 8,
+          "message": "Сейчас найду",
+          "status": "печатает"
         },
         {
-          "id": 3,
-          "text": "Сейчас найду",
-          "sender": "contact",
-          "time": "09:10",
-          "type": "received",
-          "delay": 300,
-          "typingTime": 8
+          "id": 2002,
+          "trigger": "after_message",
+          "delay": 30,
+          "typingTime": 12,
+          "message": "Вот, посмотри: instagram.com/p/...",
+          "status": "онлайн"
         },
         {
-          "id": 4,
-          "text": "Вот, посмотри: instagram.com/p/...",
-          "sender": "contact",
-          "time": "09:15",
-          "type": "received",
-          "delay": 300,
-          "typingTime": 12
+          "id": 2003,
+          "trigger": "time",
+          "time": "21:00",
+          "typingTime": 6,
+          "message": "Спокойной ночи!",
+          "status": "был(а) недавно"
         }
       ]
     },
@@ -97,9 +112,7 @@
           "text": "Привет, сынок! Все хорошо. Когда приедешь в гости?",
           "sender": "contact",
           "time": "вчера 18:30",
-          "type": "received",
-          "delay": 1800,
-          "typingTime": 15
+          "type": "received"
         },
         {
           "id": 3,
@@ -107,6 +120,24 @@
           "sender": "me",
           "time": "вчера 19:00",
           "type": "sent"
+        }
+      ],
+      "plannedEvents": [
+        {
+          "id": 3001,
+          "trigger": "time",
+          "time": "10:00",
+          "typingTime": 10,
+          "message": "Доброе утро! Как спалось?",
+          "status": "онлайн"
+        },
+        {
+          "id": 3002,
+          "trigger": "time",
+          "time": "20:00",
+          "typingTime": 7,
+          "message": "Что на ужин?",
+          "status": "онлайн"
         }
       ]
     },
@@ -123,26 +154,21 @@
           "text": "Коллеги, напоминаю о созвоне сегодня в 15:00",
           "sender": "boss",
           "time": "11:00",
-          "type": "received",
-          "delay": 0
+          "type": "received"
         },
         {
           "id": 2,
           "text": "Тема: обсуждение нового проекта",
           "sender": "boss",
           "time": "11:01",
-          "type": "received",
-          "delay": 60,
-          "typingTime": 3
+          "type": "received"
         },
         {
           "id": 3,
           "text": "Ссылку в конференцию пришлю позже",
           "sender": "boss",
           "time": "11:02",
-          "type": "received",
-          "delay": 60,
-          "typingTime": 5
+          "type": "received"
         },
         {
           "id": 4,
@@ -150,6 +176,24 @@
           "sender": "me",
           "time": "11:20",
           "type": "sent"
+        }
+      ],
+      "plannedEvents": [
+        {
+          "id": 4001,
+          "trigger": "time",
+          "time": "14:55",
+          "typingTime": 3,
+          "message": "Ссылка на конференцию: https://zoom.us/j/...",
+          "status": "онлайн"
+        },
+        {
+          "id": 4002,
+          "trigger": "after_message",
+          "delay": 5,
+          "typingTime": 2,
+          "message": "Отлично, ждем всех!",
+          "status": "онлайн"
         }
       ]
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FakeGram</title>
+    <title>FakeGram - Конструктор диалогов</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -151,8 +151,19 @@
                 <input type="text" id="chatNameInput" placeholder="Например: Алексей">
             </div>
             <div class="form-group">
-                <label>Статус</label>
+                <label>Статус по умолчанию</label>
                 <input type="text" id="chatStatusInput" placeholder="онлайн">
+            </div>
+
+            <!-- Секция планирования событий -->
+            <div class="events-section">
+                <div class="events-header">
+                    <label>Запланированные события</label>
+                    <button class="btn-add-event" id="addEventBtn">+ Добавить событие</button>
+                </div>
+                <div class="events-list" id="eventsList">
+                    <!-- События будут отображаться здесь -->
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -162,7 +173,59 @@
     </div>
 </div>
 
-<!-- Модальное окно сообщений -->
+<!-- Модальное окно события -->
+<div class="modal" id="eventModal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="eventModalTitle">Новое событие</h3>
+            <button class="close-btn" onclick="closeModal('eventModal')">✖</button>
+        </div>
+        <div class="modal-body">
+            <form id="eventForm">
+                <input type="hidden" id="eventId">
+
+                <div class="form-group">
+                    <label>Триггер события</label>
+                    <select id="eventTrigger" class="form-select">
+                        <option value="time">В определенное время</option>
+                        <option value="after_message">После моего сообщения</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="eventTimeGroup" style="display: none;">
+                    <label>Время (HH:MM)</label>
+                    <input type="time" id="eventTime">
+                </div>
+
+                <div class="form-group" id="eventDelayGroup" style="display: none;">
+                    <label>Задержка перед ответом (секунд)</label>
+                    <input type="number" id="eventDelay" value="10" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Время печатания (секунд)</label>
+                    <input type="number" id="eventTypingTime" value="5" min="1" max="30">
+                </div>
+
+                <div class="form-group">
+                    <label>Текст сообщения</label>
+                    <textarea id="eventMessage" rows="3" placeholder="Введите текст сообщения..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Новый статус (оставьте пустым, если не менять)</label>
+                    <input type="text" id="eventStatus" placeholder="например: онлайн, был(а) 5 мин назад">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" id="saveEventBtn">Сохранить</button>
+            <button class="btn-secondary" onclick="closeModal('eventModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно сообщений (оставляем для совместимости) -->
 <div class="modal" id="messageModal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">

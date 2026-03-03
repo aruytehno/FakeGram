@@ -569,3 +569,164 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #3a6a9e;
 }
+
+
+/* Events section styles */
+.events-section {
+    margin-top: 20px;
+    border-top: 1px solid #1e2c3a;
+    padding-top: 15px;
+}
+
+.events-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.events-header label {
+    color: #6e8bb3;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-add-event {
+    background-color: #2b5278;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.btn-add-event:hover {
+    background-color: #3a6a9e;
+}
+
+.events-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.event-item {
+    background-color: #1e2c3a;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 3px solid #2b5278;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.event-trigger {
+    color: #6e8bb3;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.event-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.event-edit-btn, .event-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.event-edit-btn:hover {
+    background-color: #2b5278;
+    color: white;
+}
+
+.event-delete-btn:hover {
+    background-color: #f44336;
+    color: white;
+}
+
+.event-message {
+    color: white;
+    font-size: 14px;
+    margin-bottom: 8px;
+    word-wrap: break-word;
+    background-color: #2b3b4c;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.event-details {
+    display: flex;
+    gap: 15px;
+    color: #6e8bb3;
+    font-size: 11px;
+}
+
+/* Form select */
+.form-select {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e2c3a;
+    border: 1px solid #2b3b4c;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.form-select option {
+    background-color: #1e2c3a;
+    color: white;
+}
+
+/* Textarea */
+textarea {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e2c3a;
+    border: 1px solid #2b3b4c;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #2b5278;
+}
+
+/* Time input */
+input[type="time"] {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e2c3a;
+    border: 1px solid #2b3b4c;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
